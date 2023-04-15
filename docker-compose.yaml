@@ -1,0 +1,54 @@
+services: 
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto:2
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    networks:
+      - tig-network
+    command: "mosquitto -c /mosquitto-no-auth.conf"
+
+  telegraf:
+    container_name: telegraf
+    image: telegraf:1.26.1
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    environment:
+      - TZ=Europe/Bucharest
+    networks:
+      - tig-network
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+  
+  influxdb:
+    container_name: influxdb
+    image : influxdb:2.7.0
+    healthcheck:
+      test: "curl -f http://influxdb:8086/health"
+      interval: 3s
+      timeout: 10s
+      retries: 5
+    environment:
+      - TZ=Europe/Bucharest
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=c#hVGKZ5tF7cShLfw
+      - DOCKER_INFLUXDB_INIT_ORG=syslog
+      - DOCKER_INFLUXDB_INIT_BUCKET=syslog-bucket
+      - DOCKER_INFLUXDB_INIT_RETENTION=1w
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=J5wuC5U_63vqCkMFb38Zm5jBh5gGgd3oofJvDrY9QSN41e_NWgC8VeVflCw3foRC8XaqMOtMJl3eKLYemBxWlA==
+    volumes:
+      - ./influxdb/config:/etc/influxdb2
+      - ./influxdb/data:/var/lib/influxdb2
+    ports:
+      - 8086:8086
+    networks:
+      - tig-network
+
+networks:
+  tig-network:
+    external:
+      name: tig-network
