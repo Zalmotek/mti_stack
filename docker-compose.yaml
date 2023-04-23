@@ -1,31 +1,44 @@
-services: 
+services:
+
+  # Eclipse Mosquitto MQTT Broker
   mosquitto:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - MOSQUITTO_VERSION=${MOSQUITTO_VERSION:-latest}
+    environment:
+      - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME}
+      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD}
+    image: eclipse-mosquitto:${MOSQUITTO_VERSION:-latest}
     container_name: mosquitto
-    image: eclipse-mosquitto:2
     restart: always
-    ports:
-      - "1883:1883"
-      - "9001:9001"
     networks:
-      - tig-network
-    command: "mosquitto -c /mosquitto-no-auth.conf"
+      - mti-network
+    volumes:
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - ${MOSQUITTO_PORT}:${MOSQUITTO_PORT}
 
   telegraf:
     container_name: telegraf
-    image: telegraf:1.26.1
+    image: telegraf:${TELEGRAF_VERSION}
     depends_on:
       influxdb:
         condition: service_healthy
     environment:
-      - TZ=Europe/Bucharest
+      - TZ=${TELEGRAF_TIMEZONE}
+      - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME}
+      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD}
     networks:
-      - tig-network
+      - mti-network
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
   
   influxdb:
     container_name: influxdb
-    image : influxdb:2.7.0
+    image : influxdb:${INFLUXDB_VERSION}
     healthcheck:
       test: "curl -f http://influxdb:8086/health"
       interval: 3s
@@ -34,21 +47,20 @@ services:
     environment:
       - TZ=Europe/Bucharest
       - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=c#hVGKZ5tF7cShLfw
-      - DOCKER_INFLUXDB_INIT_ORG=syslog
-      - DOCKER_INFLUXDB_INIT_BUCKET=syslog-bucket
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${ORGANISATION}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${ORGANISATION}
       - DOCKER_INFLUXDB_INIT_RETENTION=1w
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=J5wuC5U_63vqCkMFb38Zm5jBh5gGgd3oofJvDrY9QSN41e_NWgC8VeVflCw3foRC8XaqMOtMJl3eKLYemBxWlA==
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_ADMIN_TOKEN}
     volumes:
       - ./influxdb/config:/etc/influxdb2
       - ./influxdb/data:/var/lib/influxdb2
     ports:
-      - 8086:8086
+      - ${INFLUXDB_PORT}:${INFLUXDB_PORT}
     networks:
-      - tig-network
+      - mti-network
 
 networks:
-  tig-network:
-    external:
-      name: tig-network
+  mti-network:
+      name: mti-network
