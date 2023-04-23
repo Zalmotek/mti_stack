@@ -1,5 +1,5 @@
 [default]
-  url = "http://localhost:${INFLUXDB_PORT}"
-  token = "${INFLUXDB_ADMIN_TOKEN}"
-  org = "${ORGANISATION}"
+  url = "http://localhost:8086"
+  token = "J5wuC5U_63vqCkMFb38Zm5jBh5gGgd3oofJvDrY9QSN41e_NWgC8VeVflCw3foRC8XaqMOtMJl3eKLYemBxWlA==}"
+  org = "zalmotek"
   active = true
